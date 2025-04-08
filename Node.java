@@ -2,10 +2,11 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import FileHashUtil.calculateSHA256;
 
 public class Node {
-    private String trackerIP = "127.0.0.1";
-    private int trackerPort = 54321;
+    private static final String trackerIP = "127.0.0.1";
+    private static final int communicationPort = 54321;
     private String[] file_names;
     private String[] file_hashes;
 
@@ -43,6 +44,33 @@ public class Node {
 
     private static void submitFile(String filePath) {
         // tell server we wanna put up a file at this path for downloading
+
+        File file = new File(filePath);
+        String fileName = file.getName();
+        String fileHash = calculateSHA256(file);
+        try (Socket socket = new Socket(trackerIP, communicationPort);
+            socket.setSoTimeout(15000);
+            OutputStreamWriter output = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
+            BufferedWriter writer = new BufferedWriter(output)
+            InputStream in = socket.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
+            
+            // Send file name and file hash
+            writer.write("submit");
+            writer.newLine();
+            writer.write(fileName);
+            writer.write(fileHash);
+            writer.flush();
+
+            String response = reader.readLine();
+            if (response == "received") {
+                System.out.println("Successfully sent file " + fileName + " with hash " + fileHash + ".")
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private static void listAvailableFiles() {
