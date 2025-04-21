@@ -71,8 +71,9 @@ public class Tracker {
     private void handleSubmit(BufferedReader reader, BufferedWriter writer, Socket clientSocket) throws IOException {
         String fileName = reader.readLine();
         String fileHash = reader.readLine();
+        String listeningPortStr = reader.readLine(); // reads the listening port from the client
         
-        if (fileName == null || fileHash == null) {
+        if (fileName == null || fileHash == null || listeningPortStr == null) {
             writer.write("error");
             writer.newLine();
             writer.flush();
@@ -80,14 +81,23 @@ public class Tracker {
         }
 
         String clientAddress = clientSocket.getInetAddress().getHostAddress();
-        int clientPort = clientSocket.getPort();
+        int listeningPort;
         
-        NodeInfo nodeInfo = new NodeInfo(clientAddress, clientPort);
+        try {
+            listeningPort = Integer.parseInt(listeningPortStr);
+        } catch (NumberFormatException e) {
+            writer.write("error_invalid_port");
+            writer.newLine();
+            writer.flush();
+            return;
+        }
+        
+        NodeInfo nodeInfo = new NodeInfo(clientAddress, listeningPort);
         
         fileRegistry.computeIfAbsent(fileHash, k -> ConcurrentHashMap.newKeySet()).add(nodeInfo);
         fileNames.put(fileHash, fileName);
         
-        System.out.println("Registered file: " + fileName + " with hash " + fileHash + " from " + clientAddress);
+        System.out.println("Registered file: " + fileName + " with hash " + fileHash + " from " + clientAddress + ":" + listeningPort);
         
         writer.write("received");
         writer.newLine();
@@ -99,9 +109,9 @@ public class Tracker {
         writer.newLine();
         
         for (Map.Entry<String, String> entry : fileNames.entrySet()) {
-            writer.write(entry.getValue()); // File name
+            writer.write(entry.getValue()); // file name
             writer.newLine();
-            writer.write(entry.getKey());   // File hash
+            writer.write(entry.getKey());   // file hash
             writer.newLine();
             writer.write(Integer.toString(fileRegistry.get(entry.getKey()).size())); // Number of peers
             writer.newLine();
