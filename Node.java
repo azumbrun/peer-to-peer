@@ -23,6 +23,7 @@ public class Node {
 
         Thread senderThread = new Thread(new FileSender());
         senderThread.start();
+        System.out.println("P2P Node started. Type 'help' for available commands.");
 
         while (true) {
             System.out.print("> ");
@@ -31,6 +32,7 @@ public class Node {
 
             switch (args[0].toLowerCase()) {
                 case "help":
+                    printHelp();
                     break;
                 case "submit":
                     if (args.length < 2) {
@@ -48,9 +50,10 @@ public class Node {
                     break;
                 case "exit":
                     scanner.close();
+                    System.out.println("Exiting...");
                     return;
                 default:
-                    System.out.println("Unknown command.");
+                    System.out.println("Unknown command. Type 'help' for available commands.");
             }
         }
     }
@@ -99,8 +102,22 @@ public class Node {
         fileHashes.put(fileHash, fileName);
     }
 
+    private static void printHelp() {
+        System.out.println("Available commands:");
+        System.out.println("  help                - Show this help message");
+        System.out.println("  submit <file_path>  - Submit a file to the tracker");
+        System.out.println("  list                - List all available files");
+        System.out.println("  request <file_hash> - Request a file by its hash");
+        System.out.println("  exit                - Exit the application");
+    }
+
     private static void submitFile(String filePath) {
         File file = new File(filePath);
+        if (!file.exists() || !file.isFile()) {
+            System.out.println("Error: File not found: " + filePath);
+            return;
+        }
+
         String fileName = file.getName();
         String fileHash = calculateSHA256(file);
         try (Socket socket = new Socket(trackerIP, trackerPort);
@@ -109,7 +126,6 @@ public class Node {
             InputStream in = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
             
-            // Send file name and file hash
             writer.write("submit");
             writer.newLine();
             writer.write(fileName);
@@ -122,10 +138,12 @@ public class Node {
             if ("received".equals(response)) {
                 System.out.println("Successfully sent file " + fileName + " with hash " + fileHash + ".");
                 registerFile(fileName, fileHash);
+            } else {
+                System.out.println("Failed to register file with tracker. Response: " + response);
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error communicating with tracker: " + e.getMessage());
         }
     }
 
@@ -195,7 +213,6 @@ public class Node {
             writer.write(fileHash);
             writer.newLine();
             writer.flush();
-
             String response = reader.readLine();
             
             // parse response
@@ -253,7 +270,6 @@ public class Node {
             writer.write(fileHash);
             writer.newLine();
             writer.flush();
-
             String response = reader.readLine();
             
             // parse response
@@ -268,11 +284,9 @@ public class Node {
             e.printStackTrace();
         }
 
-            
-        
     }
 
-    // Add SHA256 hash calculation method
+    // add SHA256 hash calculation method
     private static String calculateSHA256(File file) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -289,7 +303,7 @@ public class Node {
             }
             return hexString.toString();
         } catch (NoSuchAlgorithmException | IOException e) {
-            e.printStackTrace();
+            System.out.println("Error calculating file hash: " + e.getMessage());
             return "";
         }
     }
