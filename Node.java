@@ -107,7 +107,7 @@ public class Node {
         System.out.println("  help                - Show this help message");
         System.out.println("  submit <file_path>  - Submit a file to the tracker");
         System.out.println("  list                - List all available files");
-        System.out.println("  request <file_hash> - Request a file by its hash");
+        System.out.println("  request <file_name> - Request a file by its hash");
         System.out.println("  exit                - Exit the application");
     }
 
@@ -131,6 +131,8 @@ public class Node {
             writer.write(fileName);
             writer.newLine();
             writer.write(fileHash);
+            writer.newLine();
+            writer.write(Integer.toString(nodePort));
             writer.newLine();
             writer.flush();
 
