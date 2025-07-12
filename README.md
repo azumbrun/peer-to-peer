@@ -1,1 +1,1 @@
-# pee-to-pee
+# peer-to-peer
